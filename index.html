@@ -436,6 +436,34 @@
         .hidden {
             display: none !important;
         }
+        .menu {
+    position: absolute;
+    top: 70px;
+    right: 20px;
+    background: rgba(15, 15, 35, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 214, 10, 0.2);
+    border-radius: 16px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    z-index: 999;
+}
+
+.menu a {
+    padding: 0.75rem 1rem;
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: background 0.2s ease;
+}
+
+.menu a:hover {
+    background: rgba(255, 214, 10, 0.2);
+    color: #ffd60a;
+}
     </style>
 </head>
 <body>
@@ -450,9 +478,15 @@
                 <input type="text" class="search-input" placeholder="Search prompts..." id="searchInput">
             </div>
             <div class="controls">
-                <button class="control-btn" id="favoritesToggle" title="Favorites">
-                    🛒
-                </button>
+    <button class="control-btn" id="favoritesToggle" title="Favorites">🛒</button>
+
+    <button class="control-btn" id="menuToggle" title="Menu">☰</button>
+
+    <div class="menu hidden" id="menu">
+        <a href="terms.html">Terms & Conditions</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="contact.html">Contact</a>
+    </div>
             </div>
         </div>
     </header>
