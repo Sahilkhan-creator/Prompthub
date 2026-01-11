@@ -650,6 +650,73 @@
     font-weight: 600; transition: all 0.3s ease;
 }
 .donate-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255,214,10,0.4); }
+        .donation-footer {
+    background: rgba(15,15,35,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,214,10,0.3);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    margin-top: 4rem;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-content p {
+    color: rgba(255,255,255,0.8);
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.support-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.support-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ffd60a, #ffaa00);
+    color: #000;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.support-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(255,214,10,0.4);
+}
+
+.upi {
+    background: linear-gradient(135deg, #00d4aa, #00a085);
+}
+
+.footer-small {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.9rem;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .support-links {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .support-btn {
+        width: 200px;
+    }
+                   }
     </style>
 </head>
 <body>
@@ -816,6 +883,19 @@
             <p>Try adjusting your search or filter settings</p>
         </div>
     </main>
+    <!-- FOOTER DONATION BAR -->
+<footer class="donation-footer">
+    <div class="footer-content">
+        <p>Built with ❤️ for AI creators worldwide</p>
+        <div class="support-links">
+            <a href="https://buymeacoffee.com/Sahilkhan31" target="_blank" class="support-btn">☕ Support MintPrompt</a>
+            <a href="upi://pay?pa=8491865595@fam&pn=MintPrompt&am=99&cu=INR" class="support-btn upi">UPI ₹99</a>
+        </div>
+        <div class="footer-small">
+            <span>5000+ prompts generated today</span>
+        </div>
+    </div>
+</footer>
 
     <!-- Modal -->
     <div class="modal hidden" id="modal">
