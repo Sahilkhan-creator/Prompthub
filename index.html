@@ -745,134 +745,196 @@
         ];
 
         // State
-        let favorites = JSON.parse(localStorage.getItem('promptFavorites')) || [];
-        let currentFilter = 'all';
-        let searchTerm = '';
+let favorites = JSON.parse(localStorage.getItem('promptFavorites')) || [];
+let currentFilter = 'all';
+let searchTerm = '';
+const ITEMS_PER_PAGE = 6;  // NEW: Pagination items per page
+let currentPage = 1;       // NEW: Current page
 
-        // DOM elements
-        const grid = document.getElementById('grid');
-        const filters = document.getElementById('filters');
-        const searchInput = document.getElementById('searchInput');
-        const modal = document.getElementById('modal');
-        const favoritesToggle = document.getElementById('favoritesToggle');
-        const emptyState = document.getElementById('emptyState');
-        const toast = document.getElementById('toast');
-        const menuToggle = document.getElementById('menuToggle');
+// DOM elements
+const grid = document.getElementById('grid');
+const filters = document.getElementById('filters');
+const searchInput = document.getElementById('searchInput');
+const modal = document.getElementById('modal');
+const favoritesToggle = document.getElementById('favoritesToggle');
+const emptyState = document.getElementById('emptyState');
+const toast = document.getElementById('toast');
+const menuToggle = document.getElementById('menuToggle');
 const menu = document.getElementById('menu');
 
-        // Initialize
-        function init() {
-            renderFilters();
+// NEW: Pagination elements
+const paginationContainer = document.getElementById('paginationContainer');
+
+// Initialize
+function init() {
+    renderFilters();
+    renderGrid();
+    setupEventListeners();
+}
+
+function renderFilters() {
+    filters.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            filters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentFilter = e.target.dataset.filter;
+            currentPage = 1;  // RESET PAGE ON FILTER
             renderGrid();
-            setupEventListeners();
+        });
+    });
+}
+
+// UPDATED: New renderGrid with pagination
+function renderGrid() {
+    const filteredPrompts = prompts.filter(prompt => {
+        const matchesFilter = currentFilter === 'all' || prompt.category === currentFilter;
+        const matchesSearch = !searchTerm || 
+            prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            prompt.full.toLowerCase().includes(searchTerm.toLowerCase());
+        const showFavoritesOnly = favoritesToggle.classList.contains('liked');
+        const isFavorite = favorites.includes(prompt.id);
+        return matchesFilter && matchesSearch && (!showFavoritesOnly || isFavorite);
+    });
+
+    const totalPages = Math.ceil(filteredPrompts.length / ITEMS_PER_PAGE);
+    
+    // Slice current page
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const pagePrompts = filteredPrompts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    grid.innerHTML = pagePrompts.length ? 
+        pagePrompts.map(prompt => createCard(prompt)).join('') : '';
+
+    renderPagination(filteredPrompts.length, totalPages);  // NEW
+    emptyState.classList.toggle('hidden', filteredPrompts.length > 0);
+}
+
+// NEW: Render pagination UI
+function renderPagination(totalItems, totalPages) {
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+        paginationContainer.classList.add('hidden');
+        return;
+    }
+    
+    paginationContainer.classList.remove('hidden');
+    
+    const pagNumbers = document.getElementById('pagNumbers');
+    const pagInfo = document.getElementById('pagInfo');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    // Page info
+    pagInfo.textContent = `${totalItems} prompts • Page ${currentPage} of ${totalPages}`;
+    
+    // Page numbers (simple 1,2,3... for your 17 prompts)
+    let pagesHtml = '';
+    for (let i = 1; i <= totalPages; i++) {
+        pagesHtml += `<span class="pag-num ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</span>`;
+    }
+    pagNumbers.innerHTML = pagesHtml;
+    
+    // Button states
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+}
+
+// NEW: Go to page
+function goToPage(page) {
+    currentPage = page;
+    renderGrid();
+}
+
+function createCard(prompt) {
+    const isFavorite = favorites.includes(prompt.id);
+    const isPremium = prompt.premium;
+    const likedClass = isFavorite ? 'liked' : '';
+
+    return `
+        <div class="card ${isPremium ? 'premium-locked' : ''}" data-id="${prompt.id}">
+            ${isPremium ? '<div class="premium-badge">PREMIUM</div>' : ''}
+            <img src="${prompt.image}" alt="${prompt.title}" class="card-image" loading="lazy">
+            <div class="card-overlay">
+                <div class="card-title">${prompt.title}</div>
+                <div class="card-category">${prompt.category.toUpperCase()}</div>
+                <div class="card-preview">${prompt.preview}</div>
+            </div>
+            <div class="card-actions">
+                <button class="action-btn like-btn ${likedClass}" data-id="${prompt.id}">❤️</button>
+            </div>
+        </div>
+    `;
+}
+
+function setupEventListeners() {
+    // Search
+    searchInput.addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        currentPage = 1;  // RESET ON SEARCH
+        renderGrid();
+    });
+
+    // Favorites toggle
+    favoritesToggle.addEventListener('click', () => {
+        favoritesToggle.classList.toggle('liked');
+        currentPage = 1;  // RESET ON FAVORITES
+        renderGrid();
+    });
+
+    // Card clicks
+    grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.card');
+        if (card && !card.classList.contains('premium-locked')) {
+            const promptId = parseInt(card.dataset.id);
+            const prompt = prompts.find(p => p.id === promptId);
+            openModal(prompt);
         }
+    });
 
-        function renderFilters() {
-            filters.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    filters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentFilter = e.target.dataset.filter;
-                    renderGrid();
-                });
-            });
+    // Like buttons
+    grid.addEventListener('click', (e) => {
+        const likeBtn = e.target.closest('.like-btn');
+        if (likeBtn) {
+            const promptId = parseInt(likeBtn.dataset.id);
+            toggleFavorite(promptId);
         }
+    });
 
-        function renderGrid() {
-            const filteredPrompts = prompts.filter(prompt => {
-                const matchesFilter = currentFilter === 'all' || prompt.category === currentFilter;
-                const matchesSearch = !searchTerm || 
-                    prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    prompt.full.toLowerCase().includes(searchTerm.toLowerCase());
-                const showFavoritesOnly = favoritesToggle.classList.contains('liked');
-                const isFavorite = favorites.includes(prompt.id);
-                
-                return matchesFilter && matchesSearch && (!showFavoritesOnly || isFavorite);
-            });
+    // Modal controls
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('copyBtn').addEventListener('click', copyPrompt);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
 
-            grid.innerHTML = filteredPrompts.length ? 
-                filteredPrompts.map(prompt => createCard(prompt)).join('') : '';
-
-            emptyState.classList.toggle('hidden', filteredPrompts.length > 0);
+    // NEW: Pagination clicks
+    document.addEventListener('click', (e) => {
+        if (e.target.id === 'prevPage' && !e.target.disabled) goToPage(currentPage - 1);
+        if (e.target.id === 'nextPage' && !e.target.disabled) goToPage(currentPage + 1);
+        if (e.target.classList.contains('pag-num')) {
+            const page = parseInt(e.target.dataset.page);
+            if (page !== currentPage) goToPage(page);
         }
+    });
 
-        function createCard(prompt) {
-            const isFavorite = favorites.includes(prompt.id);
-            const isPremium = prompt.premium;
-            const likedClass = isFavorite ? 'liked' : '';
-
-            return `
-                <div class="card ${isPremium ? 'premium-locked' : ''}" data-id="${prompt.id}">
-                    ${isPremium ? '<div class="premium-badge">PREMIUM</div>' : ''}
-                    <img src="${prompt.image}" alt="${prompt.title}" class="card-image" loading="lazy">
-                    <div class="card-overlay">
-                        <div class="card-title">${prompt.title}</div>
-                        <div class="card-category">${prompt.category.toUpperCase()}</div>
-                        <div class="card-preview">${prompt.preview}</div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="action-btn like-btn ${likedClass}" data-id="${prompt.id}">❤️</button>
-                    </div>
-                </div>
-            `;
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
         }
+    });
 
-        function setupEventListeners() {
-            // Search
-            searchInput.addEventListener('input', (e) => {
-                searchTerm = e.target.value;
-                renderGrid();
-            });
+    // Menu toggle
+    menuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+    });
 
-            // Favorites toggle
-            favoritesToggle.addEventListener('click', () => {
-                favoritesToggle.classList.toggle('liked');
-                renderGrid();
-            });
-
-            // Card clicks
-            grid.addEventListener('click', (e) => {
-                const card = e.target.closest('.card');
-                if (card && !card.classList.contains('premium-locked')) {
-                    const promptId = parseInt(card.dataset.id);
-                    const prompt = prompts.find(p => p.id === promptId);
-                    openModal(prompt);
-                }
-            });
-
-            // Like buttons
-            grid.addEventListener('click', (e) => {
-                const likeBtn = e.target.closest('.like-btn');
-                if (likeBtn) {
-                    const promptId = parseInt(likeBtn.dataset.id);
-                    toggleFavorite(promptId);
-                }
-            });
-
-            // Modal controls
-            document.getElementById('closeModal').addEventListener('click', closeModal);
-            document.getElementById('copyBtn').addEventListener('click', copyPrompt);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
-
-            // Keyboard
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                    closeModal();
-                }
-            });
-
-            // Menu toggle
-            menuToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            menu.classList.toggle('hidden');
-            });
-
-            document.addEventListener('click', () => {
-            menu.classList.add('hidden');
-            });
-            }
+    document.addEventListener('click', () => {
+        menu.classList.add('hidden');
+    });
+        }
 
         function toggleFavorite(id) {
             const index = favorites.indexOf(id);
